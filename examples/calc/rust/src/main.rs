@@ -1,19 +1,22 @@
 //! Port of legacy/calc.py following spec.md. Same line contract: `ok N` / `err KIND`.
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::{Signed, ToPrimitive, Zero};
 use std::io::{self, BufRead, BufWriter, Write};
 
 type R<T> = Result<T, &'static str>;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, PartialEq)]
 enum Tok {
-    Num(i64),
-    /// literal that does not fit i64; only an error once the parser reaches it, like the original
-    Big,
+    Num(BigInt),
     Op(char),
 }
 
 // Python frames above the parser (module, main, evaluate) and below each atom (take -> peek).
 const PY_LIMIT: usize = 1000;
 const PY_OVERHEAD: usize = 3 + 2;
+// Python 3.11+ refuses int<->str conversions above this many digits (sys.get_int_max_str_digits).
+const PY_MAX_STR_DIGITS: usize = 4300;
 
 fn tokenize(s: &str) -> R<Vec<Tok>> {
     let cs: Vec<char> = s.chars().collect();
@@ -23,13 +26,15 @@ fn tokenize(s: &str) -> R<Vec<Tok>> {
         if c.is_whitespace() {
             i += 1;
         } else if c.is_ascii_digit() {
-            let mut v: Option<i64> = Some(0);
+            let j = i;
             while i < cs.len() && cs[i].is_ascii_digit() {
-                let d = cs[i] as i64 - '0' as i64;
-                v = v.and_then(|v| v.checked_mul(10)).and_then(|v| v.checked_add(d));
                 i += 1;
             }
-            toks.push(v.map_or(Tok::Big, Tok::Num));
+            if i - j > PY_MAX_STR_DIGITS {
+                return Err("crash");
+            }
+            let digits: String = cs[j..i].iter().collect();
+            toks.push(Tok::Num(digits.parse().unwrap()));
         } else if "+-*/%^()".contains(c) {
             toks.push(Tok::Op(c));
             i += 1;
@@ -47,16 +52,16 @@ struct Parser {
 }
 
 impl Parser {
-    fn peek(&self) -> Option<Tok> {
-        self.t.get(self.i).copied()
+    fn peek(&self) -> Option<&Tok> {
+        self.t.get(self.i)
     }
     fn take(&mut self) -> Option<Tok> {
-        let tok = self.peek();
+        let tok = self.t.get(self.i).cloned();
         self.i += 1;
         tok
     }
     fn is_op(&self, ops: &str) -> bool {
-        matches!(self.peek(), Some(Tok::Op(c)) if ops.contains(c))
+        matches!(self.peek(), Some(Tok::Op(c)) if ops.contains(*c))
     }
     /// Mirrors Python's RecursionError so deep inputs give `crash` at the same depth.
     fn enter(&mut self) -> R<()> {
@@ -64,40 +69,41 @@ impl Parser {
         if self.depth + PY_OVERHEAD > PY_LIMIT { Err("crash") } else { Ok(()) }
     }
 
-    fn expr(&mut self) -> R<i64> {
+    fn expr(&mut self) -> R<BigInt> {
         self.enter()?;
         let mut v = self.term()?;
         while self.is_op("+-") {
             let plus = self.take() == Some(Tok::Op('+'));
             let r = self.term()?;
-            v = if plus { v.checked_add(r) } else { v.checked_sub(r) }.ok_or("overflow")?;
+            v = if plus { v + r } else { v - r };
         }
         self.depth -= 1;
         Ok(v)
     }
 
-    fn term(&mut self) -> R<i64> {
+    fn term(&mut self) -> R<BigInt> {
         self.enter()?;
         let mut v = self.unary()?;
         while self.is_op("*/%") {
             let op = self.take();
             let r = self.unary()?;
             v = match op {
-                Some(Tok::Op('*')) => v.checked_mul(r).ok_or("overflow")?,
-                _ if r == 0 => return Err("div0"),
-                Some(Tok::Op('/')) => floor_div(v, r)?,
-                _ => floor_mod(v, r),
+                Some(Tok::Op('*')) => v * r,
+                _ if r.is_zero() => return Err("div0"),
+                // div_floor/mod_floor match Python's // and %; div_euclid would not for negative divisors
+                Some(Tok::Op('/')) => v.div_floor(&r),
+                _ => v.mod_floor(&r),
             };
         }
         self.depth -= 1;
         Ok(v)
     }
 
-    fn unary(&mut self) -> R<i64> {
+    fn unary(&mut self) -> R<BigInt> {
         self.enter()?;
         let v = if self.is_op("-") {
             self.take();
-            self.unary()?.checked_neg().ok_or("overflow")?
+            -self.unary()?
         } else {
             self.power()?
         };
@@ -105,19 +111,19 @@ impl Parser {
         Ok(v)
     }
 
-    fn power(&mut self) -> R<i64> {
+    fn power(&mut self) -> R<BigInt> {
         self.enter()?;
         let base = self.atom()?;
         let v = if self.is_op("^") {
             self.take();
             let exp = self.unary()?;
-            if exp < 0 {
+            if exp.is_negative() {
                 return Err("negexp");
             }
-            if exp > 1000 {
-                return Err("toobig");
+            match exp.to_u32() {
+                Some(e) if e <= 1000 => base.pow(e),
+                _ => return Err("toobig"),
             }
-            base.checked_pow(exp as u32).ok_or("overflow")?
         } else {
             base
         };
@@ -125,11 +131,10 @@ impl Parser {
         Ok(v)
     }
 
-    fn atom(&mut self) -> R<i64> {
+    fn atom(&mut self) -> R<BigInt> {
         self.enter()?;
         let v = match self.take() {
             Some(Tok::Num(n)) => n,
-            Some(Tok::Big) => return Err("overflow"),
             Some(Tok::Op('(')) => {
                 let v = self.expr()?;
                 if self.take() != Some(Tok::Op(')')) {
@@ -144,21 +149,17 @@ impl Parser {
     }
 }
 
-fn floor_div(a: i64, b: i64) -> R<i64> {
-    a.checked_div_euclid(b).ok_or("overflow")
-}
-
-fn floor_mod(a: i64, b: i64) -> i64 {
-    a.rem_euclid(b)
-}
-
-fn evaluate(line: &str) -> R<i64> {
+fn evaluate(line: &str) -> R<String> {
     let mut p = Parser { t: tokenize(line)?, i: 0, depth: 0 };
     let v = p.expr()?;
     if p.peek().is_some() {
         return Err("parse");
     }
-    Ok(v)
+    let s = v.to_string();
+    if s.trim_start_matches('-').len() > PY_MAX_STR_DIGITS {
+        return Err("crash");
+    }
+    Ok(s)
 }
 
 fn main() {
@@ -177,11 +178,17 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn ok(s: &str) -> R<String> {
+        Ok(s.to_string())
+    }
     #[test]
     fn precedence_and_errors() {
-        assert_eq!(evaluate("2^3^2"), Ok(512));
-        assert_eq!(evaluate("-2^2"), Ok(-4));
+        assert_eq!(evaluate("2^3^2"), ok("512"));
+        assert_eq!(evaluate("-2^2"), ok("-4"));
         assert_eq!(evaluate("(1/0"), Err("div0"));
         assert_eq!(evaluate("1/0 $"), Err("parse"));
+        assert_eq!(evaluate("7/-2"), ok("-4"));
+        assert_eq!(evaluate("7%-2"), ok("-1"));
+        assert_eq!(evaluate("10^30/10^30"), ok("1"));
     }
 }

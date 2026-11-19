@@ -1,0 +1,5 @@
+{
+  "name": "anyrewrite2rust",
+  "version": "0.1.0",
+  "description": "Rewrite a module from any language to Rust: spec first, then a typed skeleton, then implementation proven equivalent by differential testing against the original."
+}

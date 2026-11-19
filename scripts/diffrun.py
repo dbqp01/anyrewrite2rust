@@ -12,6 +12,7 @@ import collections
 import importlib.util
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -20,7 +21,9 @@ import time
 def run(cmd, data, timeout):
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
     t0 = time.perf_counter()
-    p = subprocess.run(shlex.split(cmd), input=data.encode("utf-8"), capture_output=True, timeout=timeout, env=env)
+    argv = shlex.split(cmd)
+    argv[0] = shutil.which(argv[0]) or argv[0]  # Windows: finds calc.exe for "calc"
+    p = subprocess.run(argv, input=data.encode("utf-8"), capture_output=True, timeout=timeout, env=env)
     dt = time.perf_counter() - t0
     out = p.stdout.decode("utf-8", errors="replace").replace("\r\n", "\n").split("\n")
     if out and out[-1] == "":

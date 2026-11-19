@@ -43,7 +43,8 @@ Evaluación ansiosa de izquierda a derecha: gana el primer error que aparece.
 - No hay `+` unario: `+1` -> `parse`. Línea vacía -> `parse`.
 
 ## Decisiones para el port a Rust (revisión humana)
-- Enteros `i64`. Cualquier resultado o literal fuera de rango -> `err overflow`.
-  Divergencia aceptada solo si el original dio un entero fuera de i64 o `crash` (ver `accept.py`).
-- Dígitos: solo ASCII. Una línea con dígitos no ASCII puede dar `err parse` en Rust; divergencia aceptada.
+- Enteros `BigInt` (crate num-bigint). El primer intento con `i64` dio 907 diferencias con el original:
+  los resultados intermedios grandes (`10^30/10^30`) son comportamiento real, no un caso borde.
+- El límite de 4300 dígitos se emula (`err crash`), porque es observable.
+- Dígitos: solo ASCII. Una línea con dígitos no ASCII da `err parse` en Rust; divergencia aceptada (`accept.py`).
 - Recursión: se emula el contador de frames del original para dar `crash` en el mismo punto.
