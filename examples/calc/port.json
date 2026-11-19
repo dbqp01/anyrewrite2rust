@@ -1,0 +1,7 @@
+{
+  "legacy": "python legacy/calc.py",
+  "new": "rust/target/release/calc",
+  "corpus": ["corpus/edge.txt"],
+  "gen": "python gen.py 20000 1",
+  "accept": "accept.py"
+}

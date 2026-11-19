@@ -1,0 +1,12 @@
+{
+  "legacy": "node \"../../skills/anyrewrite2rust/harness/js_harness.mjs\" \"legacy/textkit.js\"",
+  "new": "rust/target/release/textkit",
+  "corpus": [
+    "corpus/edge.txt",
+    "corpus/hunt.txt"
+  ],
+  "gen": "python gen.py 20000 1",
+  "accept": "accept.py",
+  "json": true,
+  "float-tol": 1e-09
+}

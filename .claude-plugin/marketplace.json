@@ -1,0 +1,11 @@
+{
+  "name": "anyrewrite2rust",
+  "owner": { "name": "akimi" },
+  "plugins": [
+    {
+      "name": "anyrewrite2rust",
+      "source": "./",
+      "description": "Port code from any language to Rust, proven equivalent to the original by differential testing."
+    }
+  ]
+}

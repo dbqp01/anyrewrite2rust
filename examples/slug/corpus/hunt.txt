@@ -1,0 +1,46 @@
+{"fn": "truncate", "args": ["a\ufffdb", 2]}
+{"fn": "truncate", "args": ["\ufffd\ufffdx", 1]}
+{"fn": "truncate", "args": ["x\ufffd", 2]}
+{"fn": "truncate", "args": ["abc\ufffd", 3]}
+{"fn": "truncate", "args": ["ab", Infinity]}
+{"fn": "truncate", "args": ["ab", 1e+20]}
+{"fn": "truncate", "args": ["ab", -0.0]}
+{"fn": "truncate", "args": ["\ud83d\ude00\ud83d\ude00", 3]}
+{"fn": "parseSemver", "args": ["99999999999999999999.0.0"]}
+{"fn": "parseSemver", "args": ["9007199254740993.1.2"]}
+{"fn": "parseSemver", "args": ["01.002.0003"]}
+{"fn": "parseSemver", "args": ["1.2.3-"]}
+{"fn": "parseSemver", "args": ["1.2.3-a..b"]}
+{"fn": "parseSemver", "args": ["v1.2.3-x\u0085"]}
+{"fn": "parseSemver", "args": ["\u00a01.2.3\u00a0"]}
+{"fn": "parseSemver", "args": ["1.2.3\u0085"]}
+{"fn": "parseSemver", "args": [123]}
+{"fn": "slugify", "args": ["\ud800a"]}
+{"fn": "slugify", "args": ["a\udc00b c"]}
+{"fn": "slugify", "args": ["Hello World", "{"]}
+{"fn": "slugify", "args": ["a{b}c", "{"]}
+{"fn": "slugify", "args": ["x-y", "]"]}
+{"fn": "slugify", "args": ["x]y", "]"]}
+{"fn": "slugify", "args": ["a b", "\\p{L}"]}
+{"fn": "slugify", "args": ["ab1", "\\b"]}
+{"fn": "slugify", "args": ["ab", "a{2}"]}
+{"fn": "slugify", "args": ["a b", "\\u0041"]}
+{"fn": "slugify", "args": ["a b", "\\x41"]}
+{"fn": "slugify", "args": ["a b", "^"]}
+{"fn": "slugify", "args": ["a b", "^+"]}
+{"fn": "slugify", "args": ["a-b", "a|b"]}
+{"fn": "slugify", "args": ["a-b", "(?:-)"]}
+{"fn": "slugify", "args": ["\u03a3\u0391\u03a3 \u0130stanbul \ufb01"]}
+{"fn": "slugify", "args": ["\u216b \u00b2  \u00bd"]}
+{"fn": "slugify", "args": ["\u0130\u0307x"]}
+{"fn": "slugify", "args": ["\u212aelvin"]}
+{"fn": "truncate", "args": [5, 2]}
+{"fn": "wordCount", "args": [5]}
+{"fn": "wordCount", "args": ["\u180ea\u180eb"]}
+{"fn": "wordCount", "args": ["a\u2028b\u2029c"]}
+{"fn": "wordCount", "args": ["\u200ba"]}
+{"fn": "nosuchfn", "args": ["x"]}
+{"fn": "slugify", "args": []}
+{"fn": "truncate", "args": ["ab", "2"]}
+{"fn": "truncate", "args": ["ab"]}
+{"fn": "wordCount", "args": ["a\u00a0b\u202fc\u205fd"]}

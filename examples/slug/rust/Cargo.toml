@@ -1,0 +1,9 @@
+[package]
+name = "textkit"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+regex = "1.13.2"
+serde_json = "1.0.154"
+unicode-normalization = "0.1.26"
