@@ -25,6 +25,17 @@ Run `python <plugin>/scripts/depmap.py <project>` for JS/TS (for other languages
 Also look for **patches to dependencies** (`patch-package`, postinstall scripts, vendored edits). They are behavior the port must keep, and no crate will have them.
 Write the result as `TRIAGE.md` (see `examples/dopamine/TRIAGE.md`). If tier C covers the core of the app, say so: that is a rewrite of the product, not a port.
 
+## Phase 0.7: UI target (only if the app has a UI)
+The UI can't be diff-tested line by line. Port the core (data, parsing, rules, I/O) first as a Rust library the old UI calls, then decide the UI:
+| Original UI | Cheapest target | Native Rust alternative |
+|---|---|---|
+| Web stack in Electron (Angular, React, Vue) | Tauri, frontend kept as is | Dioxus (components, React-like), Slint, Iced |
+| GTK (C) | gtk4-rs / Relm4: widgets map almost 1:1 | |
+| Qt / QML (C++) | cxx-qt: keep Qt, logic in Rust | Slint (closest to QML) |
+| Win32 / WinUI | `windows` crate (Microsoft's bindings) | Slint, Iced |
+| Dear ImGui / tools | egui | |
+Real apps on native Rust UI: Zed (GPUI), COSMIC desktop (Iced). Rewriting the UI is reimagining, not porting: verify it with screenshots and manual flows, not with `diffrun.py`.
+
 ## Phase 1: spec (human reviews)
 Write `spec.md`: I/O contract, neutral pseudocode, and a **Quirks** section with behavior the original has whether or not anyone intended it (error ordering, integer size, unicode handling, recursion limits, crashes). Measure quirks by running the original; do not guess them.
 
