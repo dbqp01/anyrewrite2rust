@@ -1,5 +1,10 @@
 {
   "name": "anyrewrite2rust",
   "version": "0.1.0",
-  "description": "Rewrite a module from any language to Rust: spec first, then a typed skeleton, then implementation proven equivalent by differential testing against the original."
+  "description": "Rewrite a module from any language to Rust: spec first, then a typed skeleton, then implementation proven equivalent by differential testing against the original.",
+  "author": {
+    "name": "dbqp01"
+  },
+  "repository": "https://github.com/dbqp01/anyrewrite2rust",
+  "license": "MIT"
 }

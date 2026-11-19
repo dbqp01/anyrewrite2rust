@@ -6,7 +6,7 @@ Translating is the easy part for an LLM. The hard part is knowing the result is 
 
 ## Install
 ```
-claude plugin marketplace add <path or git URL of this repo>
+claude plugin marketplace add dbqp01/anyrewrite2rust
 claude plugin install anyrewrite2rust@anyrewrite2rust
 ```
 You need Python 3.10+, Rust (cargo, with clippy), and Node 18+ if the original is JS.
@@ -54,4 +54,4 @@ python skills/anyrewrite2rust/scripts/diffrun.py --config ports/textkit/port.jso
 - Harnesses exist for Python and JS. Other languages need about 40 lines of harness, following the two included.
 - Passing the gate means "equal on every input tried", not a formal proof.
 
-See `PRIOR_ART.md` for related tools (Noricum, rustport-skill, the TRACTOR program) and how this differs from them.
+License: MIT. See `PRIOR_ART.md` for related tools (Noricum, rustport-skill, the TRACTOR program) and how this differs from them.

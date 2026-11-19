@@ -1,6 +1,6 @@
 {
   "name": "anyrewrite2rust",
-  "owner": { "name": "akimi" },
+  "owner": { "name": "dbqp01" },
   "plugins": [
     {
       "name": "anyrewrite2rust",
