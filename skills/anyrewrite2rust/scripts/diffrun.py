@@ -79,6 +79,37 @@ def kind(s):
     return parts[0] if parts[0] != "err" else " ".join(parts[:2])
 
 
+def coverage(inputs, outputs):
+    """Per function: calls, distinct ok results, and error kinds, from the original's outputs.
+    Few distinct results, or one result for most calls (an empty answer, one error), means the
+    corpus/generator barely exercises that function."""
+    cov = collections.defaultdict(lambda: {"calls": 0, "ok": collections.Counter(), "err": collections.Counter()})
+    for inp, out in zip(inputs, outputs):
+        try:
+            fn, v = json.loads(inp).get("fn", "?"), json.loads(out)
+        except (ValueError, AttributeError):
+            continue
+        c = cov[fn]
+        c["calls"] += 1
+        if isinstance(v, dict) and "err" in v:
+            c["err"][str(v["err"])] += 1
+        else:
+            c["ok"][json.dumps(v, sort_keys=True)] += 1
+    return cov
+
+
+def print_coverage(inputs, outputs):
+    cov = coverage(inputs, outputs)
+    print("coverage (original's outputs):")
+    for fn, c in sorted(cov.items()):
+        errs = ", ".join(f"{k} {n}" for k, n in c["err"].most_common(4))
+        only_bools = set(c["ok"]) <= {'{"ok": true}', '{"ok": false}'}  # a predicate can't have more than 2 results
+        top = max([*c["ok"].values(), *c["err"].values(), 0]) / c["calls"]
+        weak = c["calls"] >= 50 and (len(c["ok"]) < (2 if only_bools else 5) or (top > 0.6 and not only_bools))
+        print(f"  {fn:32s} calls {c['calls']:6d}  distinct ok {len(c['ok']):6d}  top result {top:4.0%}  {errs}"
+              + ("  <- weak" if weak else ""))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")  # Windows consoles default to cp1252
     ap = argparse.ArgumentParser()
@@ -142,6 +173,8 @@ def main():
             mism.append((inp, o, n))
 
     print(f"equal: {len(inputs) - n_acc - len(mism)}  accepted divergences: {n_acc}  mismatches: {len(mism)}")
+    if a.json:
+        print_coverage(inputs, old)
     kinds = collections.Counter((kind(o), kind(n)) for _, o, n in mism)
     for (ko, kn), c in kinds.most_common():
         print(f"  {c:5d}  legacy[{ko}] vs new[{kn}]")

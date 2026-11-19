@@ -8,6 +8,7 @@ SCRIPTS = os.path.join(ROOT, "skills", "anyrewrite2rust", "scripts")
 steps = [
     ([sys.executable, "test_diffrun.py"], SCRIPTS),
     ([sys.executable, "test_depmap.py"], SCRIPTS),
+    ([sys.executable, "accept_helpers.py"], SCRIPTS),
 ]
 for ex in ("calc", "slug"):
     d = os.path.join(ROOT, "examples", ex)

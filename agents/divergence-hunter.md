@@ -17,6 +17,7 @@ Loop, at most 5 rounds:
 Hard rules:
 - Never edit `accept.py`, `spec.md`, `legacy/` or `rust/`. You report; a human decides.
 - Do not count divergences that `accept.py` already accepts.
+- Stay inside the input domain: the argument types the real callers pass (see spec.md, or the adapter's checks). Inputs outside it (a nested array where the code expects strings) only test the source language's type coercion. If you find the domain is not enforced, report that once as a finding instead of hunting variants of it.
 - Stop early once you have found 3 distinct root causes, or after 5 rounds.
 
 Report, and nothing else:

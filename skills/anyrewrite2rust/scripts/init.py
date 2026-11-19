@@ -2,6 +2,7 @@
 
 usage:
   python init.py <port_dir> --module path/to/lib.py|lib.js     function-level port (JSON lines via a harness)
+  python init.py <port_dir> --module adapter.ts [--alias @angular/core=./stub.js]   TS, bundled with esbuild
   python init.py <port_dir> --legacy-cmd "python tool.py"      program-level port (the program already reads stdin lines)
 Then: fill spec.md, add calls to corpus/edge.txt, implement rust/src/main.rs, run
   python diffrun.py --config <port_dir>/port.json
@@ -57,6 +58,8 @@ def main():
     src.add_argument("--module", help="Python or JS module whose functions are ported")
     src.add_argument("--legacy-cmd", help="command of an original that already reads one input per stdin line")
     ap.add_argument("--name", help="crate name (default: port folder name)")
+    ap.add_argument("--alias", action="append", default=[],
+                    help="TS only, repeatable: replace an import when bundling, e.g. @angular/core=./stubs/angular.js")
     a = ap.parse_args()
 
     root = os.path.abspath(a.port_dir)
@@ -66,10 +69,23 @@ def main():
     if a.module:
         mod = fwd(os.path.relpath(os.path.abspath(a.module), root))
         ext = os.path.splitext(mod)[1]
+        try:  # relative when possible, so the port folder can move or be committed with the plugin
+            harness = fwd(os.path.relpath(os.path.join(SKILL, "harness"), root))
+        except ValueError:  # different drive on Windows
+            harness = fwd(os.path.join(SKILL, "harness"))
+        if ext in (".ts", ".tsx", ".mts"):
+            # TS can't run as is: bundle it to one CommonJS file, then use the JS harness on the bundle
+            bundle = os.path.join(root, "legacy.bundle.cjs")
+            cmd = ["npx", "--yes", "esbuild", os.path.abspath(a.module), "--bundle", "--platform=node",
+                   "--format=cjs", f"--outfile={bundle}", "--log-level=warning"] + [f"--alias:{x}" for x in a.alias]
+            print(" ".join(cmd))
+            if subprocess.run(cmd, shell=os.name == "nt").returncode:
+                sys.exit("esbuild failed: stub framework imports with --alias pkg=./stub.js (see SKILL.md, TypeScript)")
+            mod, ext = "legacy.bundle.cjs", ".cjs"
         if ext == ".py":
-            legacy = f'python "{fwd(SKILL)}/harness/py_harness.py" "{mod}"'
+            legacy = f'python "{harness}/py_harness.py" "{mod}"'
         elif ext in (".js", ".mjs", ".cjs"):
-            legacy = f'node "{fwd(SKILL)}/harness/js_harness.mjs" "{mod}"'
+            legacy = f'node "{harness}/js_harness.mjs" "{mod}"'
         else:
             sys.exit(f"no harness for {ext}: write one (see harness/) or use --legacy-cmd")
         contract = 'stdin `{"fn": "name", "args": [...]}` per line; stdout `{"ok": value}` or `{"err": "ErrorName"}`.'

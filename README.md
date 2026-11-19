@@ -34,7 +34,8 @@ python skills/anyrewrite2rust/scripts/diffrun.py --config ports/textkit/port.jso
 | `skills/anyrewrite2rust/SKILL.md` | The method: contract, dependency triage, UI target, spec, corpus, skeleton, implement, gate. Ends with the language traps found so far. |
 | `scripts/init.py` | Scaffolds `port.json`, `spec.md`, `accept.py`, the corpus folder and a Rust crate that speaks the contract. |
 | `harness/py_harness.py`, `harness/js_harness.mjs` | Let you diff-test the functions of a library, not just CLIs: `{"fn","args"}` in, `{"ok"}`/`{"err"}` out. |
-| `scripts/diffrun.py` | Differential runner. Compares as JSON (key order and `1` vs `1.0` don't count, float tolerance) and writes failing inputs to `mismatches.txt`. |
+| `scripts/diffrun.py` | Differential runner. Compares as JSON (key order and `1` vs `1.0` don't count, float tolerance), writes failing inputs to `mismatches.txt`, and prints a per-function coverage table that flags functions the inputs barely reach. |
+| `scripts/accept_helpers.py` | Ready checks for common accepted divergences (lone UTF-16 surrogates). |
 | `accept.py` (per port) | The only place a divergence can be accepted, one narrow rule per human decision. |
 | `scripts/depmap.py` | Lists which npm dependencies are used, where, and which functions of each. Feeds the triage. |
 | `agents/divergence-hunter.md` | Adversarial tester (Haiku). It reports problems and never edits code. |
@@ -44,14 +45,15 @@ python skills/anyrewrite2rust/scripts/diffrun.py --config ports/textkit/port.jso
 |---|---|---|---|
 | `examples/calc` | Python program (integer calculator) | 170,199 | 0 mismatches after 2 failed attempts the gate caught: a panic, then 907 mismatches from using `i64` |
 | `examples/slug` | JS library (slugify, truncate, semver, word count) | 60,092 | 0 mismatches. The hunter found 1 real bug and 2 language limits in one round, after 60k random inputs had passed |
-| `examples/dopamine/TRIAGE.md` | Electron app, 90k lines (triage only, not ported) | n/a | Each dependency sorted into a crate swap, a crate that behaves differently, or no equivalent |
+| `examples/dopamine/LYRICS_PORT.md` | Real TS from the Dopamine player (lyrics parsers + StringUtils, Angular DI), run through an adapter | 160,496 | 0 mismatches. The coverage table caught a generator that barely reached `parseSrt`. Includes a measured estimate for porting the whole app |
+| `examples/dopamine/TRIAGE.md` | Electron app, 90k lines (triage only) | n/a | Each dependency sorted into a crate swap, a crate that behaves differently, or no equivalent |
 
 `python check.py` re-runs all of it: self-checks, clippy, tests and both equivalence gates.
 
 ## Limits
 - One module at a time, up to a few thousand lines. Big systems are ported leaf by leaf.
 - Only covers behavior visible through the contract. UIs, timing and side effects (files, network) need their own harness or a manual check.
-- Harnesses exist for Python and JS. Other languages need about 40 lines of harness, following the two included.
+- Harnesses exist for Python and JS; TypeScript is bundled with esbuild (`init.py --module adapter.ts`). Other languages need about 40 lines of harness, following the two included.
 - Passing the gate means "equal on every input tried", not a formal proof.
 
 License: MIT. See `PRIOR_ART.md` for related tools (Noricum, rustport-skill, the TRACTOR program) and how this differs from them.
