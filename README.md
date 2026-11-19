@@ -4,7 +4,9 @@ Claude Code plugin to port a module from any language to Rust, with equivalence 
 
 - `skills/anyrewrite2rust/SKILL.md`: the phased method (contract, spec, corpus, skeleton, implement, equivalence gate).
 - `scripts/diffrun.py`: language-agnostic differential runner.
+- `scripts/depmap.py`: inventory of a JS/TS project's runtime dependencies and the API surface it uses.
 - `examples/calc/`: a full run on a Python integer calculator.
+- `examples/dopamine/TRIAGE.md`: dependency triage of a real Electron app (not ported), sorting each dependency into a crate swap, a crate that behaves differently, or no equivalent.
 
 ## What the example run found
 | Attempt | Result |

@@ -13,6 +13,18 @@ The rule that makes this work: **the original program's observed behavior is the
 Pick a boundary both programs can expose: one input per stdin line, one output line per input (JSON per line if the data is structured). If the original has no such entry point, write a thin harness around it in its own language. Do not change its logic.
 Fix sources of false differences: time, randomness, dict ordering, paths, float formatting.
 
+## Phase 0.5: dependency triage (before any spec)
+Run `python <plugin>/scripts/depmap.py <project>` for JS/TS (for other languages, list imports by hand the same way). What matters is the API surface the code actually uses, not the whole library. Put every dependency in one tier:
+- **A, direct crate**: same job, same contract (rusqlite for better-sqlite3, uuid). Swap it and diff-test the call sites.
+- **B, crate that behaves differently**: same job, different output (tag readers, date formatting, image resizing, color extraction). Diff-test the library itself through the harness before trusting it. When output can't match (a different algorithm), the human picks one: accept with a tolerance in `accept.py`, or go to C.
+- **C, no equivalent**: choose the cheapest option that still works:
+  1. **Keep it out of the port.** Leave that part in the original language and call it over a boundary (subprocess + JSON lines, or a sidecar). Most UI frameworks land here, and so do browser APIs and huge libraries.
+  2. **Port only the used surface.** If the code calls 3 functions of a big library, port those 3 as a small Rust module with its own corpus and diff-test. This is the usual answer to "do I rewrite the library": you rewrite the slice you use.
+  3. **Bind to the native library** under the JS package (FFI) when it wraps C/C++.
+  4. **Full library rewrite**: only when it is small and central. Treat it as its own anyrewrite2rust run.
+Also look for **patches to dependencies** (`patch-package`, postinstall scripts, vendored edits). They are behavior the port must keep, and no crate will have them.
+Write the result as `TRIAGE.md` (see `examples/dopamine/TRIAGE.md`). If tier C covers the core of the app, say so: that is a rewrite of the product, not a port.
+
 ## Phase 1: spec (human reviews)
 Write `spec.md`: I/O contract, neutral pseudocode, and a **Quirks** section with behavior the original has whether or not anyone intended it (error ordering, integer size, unicode handling, recursion limits, crashes). Measure quirks by running the original; do not guess them.
 
